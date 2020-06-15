@@ -29,7 +29,7 @@ try:
         IScanIssue
     import jarray
 except ImportError:
-    print "Failed to load dependencies. This issue may be caused by using the unstable Jython 2.7 beta."
+    print("Failed to load dependencies. This issue may be caused by using the unstable Jython 2.7 beta.")
 
 VERSION = "1.0.21c"
 FAST_MODE = False
@@ -56,7 +56,7 @@ class BurpExtender(IBurpExtender):
         collab_enabled = True
         if '"type":"none"' in callbacks.saveConfigAsJson("project_options.misc.collaborator_server"):
             collab_enabled = False
-            print "Collaborator not enabled; skipping checks that require it"
+            print("Collaborator not enabled; skipping checks that require it")
         
         callbacks.registerScannerCheck(PerHostScans())
         callbacks.registerScannerCheck(PerRequestScans())
@@ -72,7 +72,7 @@ class BurpExtender(IBurpExtender):
                 callbacks.registerScannerCheck(Solr())
                 callbacks.registerScannerCheck(doStruts_2017_12611_scan())
 
-        print "Successfully loaded activeScan++ v" + VERSION
+        print("Successfully loaded activeScan++ v" + VERSION)
 
         return
 
@@ -155,7 +155,7 @@ class PerRequestScans(IScannerCheck):
             try:
                 issues.extend(scan_check(basePair))
             except Exception:
-                print 'Error executing PerRequestScans.'+scan_check.__name__+': '
+                print('Error executing PerRequestScans.'+scan_check.__name__+': ')
                 print(traceback.format_exc())
 
         return issues
@@ -245,10 +245,10 @@ class PerRequestScans(IScannerCheck):
 
         command = "ping</string><string>" + collab_payload + "</string><string>-c1" # platform-agnostic command to check for RCE via DNS interaction
 
-        # print ("\nCommand is: "+command)
+        # print("\nCommand is: "+command)
         # whole_param = helpers.buildParameter('body',param_pre + command + param_post,IParameter.PARAM_BODY)
         whole_param = param_pre + command + param_post
-        # print ('*** The following parameter will be sent:\n\n' + whole_param)
+        # print('*** The following parameter will be sent:\n\n' + whole_param)
 
         (ignore, req) = setHeader(basePair.getRequest(), 'Content-Type', "application/xml", True) # application/xml seems to work better with Struts while text/xml seems to work better for XXE
         (ignore, req) = setHeader(req, 'Content-Length', str(len(whole_param)), True)
@@ -879,7 +879,7 @@ class CustomScanIssue(IScanIssue):
         self.Detail = detail
         self.Severity = severity
         self.Confidence = confidence
-        print "Reported: " + name + " on " + str(url)
+        print("Reported: " + name + " on " + str(url))
         return
 
     def getUrl(self):
@@ -1035,7 +1035,7 @@ def is_same_issue(existingIssue, newIssue):
 
 def debug_msg(message):
     if DEBUG:
-        print message
+        print(message)
 
 
 def setHeader(request, name, value, add_if_not_present=False):
