@@ -1,7 +1,7 @@
 package burp;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import burp.api.montoya.core.BurpSuiteEdition;
+
 import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -91,7 +91,7 @@ public class OldUtilities {
     }
 
     public static void launchPassiveScan(IHttpRequestResponse attack) {
-        if (attack.getResponse() == null) {
+        if (Utilities.montoyaApi.burpSuite().version().edition().equals(BurpSuiteEdition.ENTERPRISE_EDITION) || attack.getResponse() == null) {
             return;
         }
         IHttpService service = attack.getHttpService();
