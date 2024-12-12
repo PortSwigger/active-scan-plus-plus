@@ -1,17 +1,13 @@
 package burp;
-import burp.api.montoya.http.RequestOptions;
 import burp.api.montoya.http.message.params.HttpParameter;
 import burp.api.montoya.http.message.params.HttpParameterType;
 import burp.api.montoya.http.message.requests.HttpRequest;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.lang3.text.StrSubstitutor;
 
 import java.util.*;
 import java.net.URL;
 import java.util.Random;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class PerRequestScans extends ParamScan {
     private final List<ScanCheck> scanChecks;
@@ -23,7 +19,7 @@ public class PerRequestScans extends ParamScan {
                 this::doCodePathScan,
                 this::doStrutsScan,
                 this::doStruts20179805Scan,
-                this::doStruts201811776Scan,
+//                this::doStruts201811776Scan,
                 //this::doXXEPostScan, // dodgy check
                 this::doRailsScan
         );
