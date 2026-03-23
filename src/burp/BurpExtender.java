@@ -25,7 +25,7 @@ public class BurpExtender implements IBurpExtender, IExtensionStateListener, Bur
         if (!Utilities.montoyaApi.burpSuite().version().edition().equals(BurpSuiteEdition.ENTERPRISE_EDITION)) {
             BulkUtilities.registerContextMenu();
         }
-        GoogleApiKeySettingsPanel.register(api);
+        ExtensionSettingsPanel.register(api);
         // api.http().registerHttpHandler(new Tester());
         // api.userInterface().registerContextMenuItemsProvider(new OfferHostnameOverride());
     }

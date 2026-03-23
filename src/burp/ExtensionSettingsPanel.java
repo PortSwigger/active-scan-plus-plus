@@ -6,14 +6,22 @@ import javax.swing.*;
 import java.awt.*;
 import java.lang.reflect.Method;
 
-class GoogleApiKeySettingsPanel {
+class ExtensionSettingsPanel {
 
-    private static final String PERSISTENCE_KEY = "google-api-key.verify-gemini-access";
+    private static final String VERIFY_GEMINI_KEY = "google-api-key.verify-gemini-access";
 
     private final JPanel panel;
 
-    GoogleApiKeySettingsPanel(MontoyaApi api) {
-        boolean savedValue = "true".equals(api.persistence().extensionData().getString(PERSISTENCE_KEY));
+    ExtensionSettingsPanel(MontoyaApi api) {
+        panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        addGoogleApiKeySection(api);
+    }
+
+    private void addGoogleApiKeySection(MontoyaApi api) {
+        boolean savedValue = "true".equals(api.persistence().extensionData().getString(VERIFY_GEMINI_KEY));
         BurpExtender.verifyGeminiAccess.set(savedValue);
 
         JCheckBox verifyCheckbox = new JCheckBox("Verify Gemini API access (sends requests to Google)");
@@ -22,7 +30,7 @@ class GoogleApiKeySettingsPanel {
         verifyCheckbox.addActionListener(e -> {
             boolean selected = verifyCheckbox.isSelected();
             BurpExtender.verifyGeminiAccess.set(selected);
-            api.persistence().extensionData().setString(PERSISTENCE_KEY, String.valueOf(selected));
+            api.persistence().extensionData().setString(VERIFY_GEMINI_KEY, String.valueOf(selected));
         });
 
         Font defaultFont = UIManager.getFont("Label.font");
@@ -51,9 +59,6 @@ class GoogleApiKeySettingsPanel {
 
         verifyCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         panel.add(heading);
         panel.add(description);
         panel.add(verifyCheckbox);
@@ -61,7 +66,7 @@ class GoogleApiKeySettingsPanel {
 
     static void register(MontoyaApi api) {
         try {
-            GoogleApiKeySettingsPanel settingsPanel = new GoogleApiKeySettingsPanel(api);
+            ExtensionSettingsPanel settingsPanel = new ExtensionSettingsPanel(api);
             Object proxy = java.lang.reflect.Proxy.newProxyInstance(
                     api.getClass().getClassLoader(),
                     new Class[]{Class.forName("burp.api.montoya.ui.settings.SettingsPanel")},
@@ -70,7 +75,7 @@ class GoogleApiKeySettingsPanel {
                             return settingsPanel.panel;
                         }
                         if ("keywords".equals(method.getName())) {
-                            return java.util.Set.of("google", "api", "key", "gemini");
+                            return java.util.Set.of("activescan", "active", "scan", "google", "api", "key", "gemini");
                         }
                         return null;
                     }
