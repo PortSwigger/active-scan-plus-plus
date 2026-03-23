@@ -1,5 +1,6 @@
 package burp;
 
+import burp.api.montoya.http.RequestOptions;
 import burp.api.montoya.http.message.requests.HttpRequest;
 import burp.api.montoya.http.message.HttpRequestResponse;
 
@@ -10,13 +11,27 @@ import java.util.regex.Pattern;
 
 public class GoogleApiKeyScan extends ParamScan {
 
-    private static final Pattern API_KEY_PATTERN = Pattern.compile("AIza[0-9A-Za-z_-]{35}");
+    private static final Pattern API_KEY_PATTERN = Pattern.compile("AIza[0-9A-Za-z_-]{35}\\b");
     private static final String GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/";
-
-    private static final String INFO_DETAIL =
+    private static final String INFO_DETAIL_BASE =
             "<p>A Google API key (<code>AIza...</code>) was found in the response. " +
             "If the Generative Language API is enabled on the same GCP project and the key is unrestricted, " +
             "it may grant access to Gemini endpoints.</p>" +
+            "<p><b>Remediation:</b> Audit key restrictions under " +
+            "<b>APIs &amp; Services &gt; Credentials</b> in the GCP Console.</p>";
+
+    private static final String VERIFY_TIP =
+            "<p><i>Tip: Enable <b>Verify Gemini API access</b> under " +
+            "Settings &gt; Extensions &gt; ActiveScan++ &gt; Google API Key Scan " +
+            "to automatically check whether this key grants Gemini API access.</i></p>";
+
+    private static final String UPGRADE_TIP =
+            "<p><i>Tip: Update Burp Suite to 2025.5+ to enable the Gemini API key " +
+            "verification setting.</i></p>";
+
+    private static final String INFO_DETAIL_VERIFIED =
+            "<p>A Google API key (<code>AIza...</code>) was found in the response. " +
+            "Verification was attempted and <b>no Gemini API access was confirmed</b>.</p>" +
             "<p><b>Remediation:</b> Audit key restrictions under " +
             "<b>APIs &amp; Services &gt; Credentials</b> in the GCP Console.</p>";
 
@@ -68,6 +83,7 @@ public class GoogleApiKeyScan extends ParamScan {
             return Collections.emptyList();
         }
 
+        boolean shouldVerify = BurpExtender.verifyGeminiAccess.get();
         List<IScanIssue> issues = new ArrayList<>();
         IHttpService httpService = basePair.getHttpService();
         java.net.URL url = Utilities.helpers.analyzeRequest(basePair).getUrl();
@@ -81,30 +97,41 @@ public class GoogleApiKeyScan extends ParamScan {
                 break;
             }
 
-            EnumSet<GeminiEndpoint> accessible = getAccessibleEndpoints(apiKey);
-            if (!accessible.isEmpty()) {
-                boolean hasDataExposure = accessible.contains(GeminiEndpoint.FILES)
-                        || accessible.contains(GeminiEndpoint.CACHED_CONTENTS);
+            if (shouldVerify) {
+                EnumSet<GeminiEndpoint> accessible = getAccessibleEndpoints(apiKey);
+                if (!accessible.isEmpty()) {
+                    boolean hasDataExposure = accessible.contains(GeminiEndpoint.FILES)
+                            || accessible.contains(GeminiEndpoint.CACHED_CONTENTS);
 
-                issues.add(new CustomScanIssue(
-                        httpService, url, evidence,
-                        hasDataExposure
-                                ? "Google API Key with Gemini API Access (Data Exposure)"
-                                : "Google API Key with Gemini API Access",
-                        buildGeminiDetail(redactedKey, accessible, hasDataExposure),
-                        "Certain",
-                        hasDataExposure
-                                ? CustomScanIssue.severity.High
-                                : CustomScanIssue.severity.Medium
-                ));
-            } else {
-                issues.add(new CustomScanIssue(
-                        httpService, url, evidence,
-                        "Google API Key Detected",
-                        INFO_DETAIL + "<p>Key found: <code>" + redactedKey + "</code></p>",
-                        "Certain", CustomScanIssue.severity.Information
-                ));
+                    issues.add(new CustomScanIssue(
+                            httpService, url, evidence,
+                            hasDataExposure
+                                    ? "Google API Key with Gemini API Access (Data Exposure)"
+                                    : "Google API Key with Gemini API Access",
+                            buildGeminiDetail(redactedKey, accessible, hasDataExposure),
+                            "Certain",
+                            hasDataExposure
+                                    ? CustomScanIssue.severity.High
+                                    : CustomScanIssue.severity.Medium
+                    ));
+                    continue;
+                }
             }
+
+            String infoDetail;
+            if (shouldVerify) {
+                infoDetail = INFO_DETAIL_VERIFIED;
+            } else if (BurpExtender.settingsPanelAvailable) {
+                infoDetail = INFO_DETAIL_BASE + VERIFY_TIP;
+            } else {
+                infoDetail = INFO_DETAIL_BASE + UPGRADE_TIP;
+            }
+            issues.add(new CustomScanIssue(
+                    httpService, url, evidence,
+                    "Google API Key Detected",
+                    infoDetail + "<p>Key found: <code>" + redactedKey + "</code></p>",
+                    "Certain", CustomScanIssue.severity.Information
+            ));
         }
 
         return issues;
@@ -161,7 +188,8 @@ public class GoogleApiKeyScan extends ParamScan {
         try {
             HttpRequest request = HttpRequest.httpRequestFromUrl(
                     GEMINI_BASE + endpoint.path + "?key=" + apiKey);
-            HttpRequestResponse response = Utilities.montoyaApi.http().sendRequest(request);
+            RequestOptions options = RequestOptions.requestOptions().withUpstreamTLSVerification();
+            HttpRequestResponse response = Utilities.montoyaApi.http().sendRequest(request, options);
             if (response.response() == null) {
                 return null;
             }

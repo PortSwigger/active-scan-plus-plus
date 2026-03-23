@@ -9,12 +9,15 @@ import java.nio.charset.Charset;
 
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class BurpExtender implements IBurpExtender, IExtensionStateListener, BurpExtension {
     private static final String name = "ActiveScan++";
     private static final String version = "2.0.9";
     public boolean unloaded = false;
     static ConcurrentHashMap<String, Boolean> hostsToSkip = new ConcurrentHashMap<>();
+    static final AtomicBoolean verifyGeminiAccess = new AtomicBoolean(false);
+    static volatile boolean settingsPanelAvailable = false;
 
     @Override
     public void initialize(MontoyaApi api) {
@@ -22,6 +25,7 @@ public class BurpExtender implements IBurpExtender, IExtensionStateListener, Bur
         if (!Utilities.montoyaApi.burpSuite().version().edition().equals(BurpSuiteEdition.ENTERPRISE_EDITION)) {
             BulkUtilities.registerContextMenu();
         }
+        GoogleApiKeySettingsPanel.register(api);
         // api.http().registerHttpHandler(new Tester());
         // api.userInterface().registerContextMenuItemsProvider(new OfferHostnameOverride());
     }
