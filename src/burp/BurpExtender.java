@@ -24,8 +24,8 @@ public class BurpExtender implements IBurpExtender, IExtensionStateListener, Bur
         Utilities.montoyaApi = api;
         if (!Utilities.montoyaApi.burpSuite().version().edition().equals(BurpSuiteEdition.ENTERPRISE_EDITION)) {
             BulkUtilities.registerContextMenu();
+            ExtensionSettingsPanel.register(api);
         }
-        ExtensionSettingsPanel.register(api);
         // api.http().registerHttpHandler(new Tester());
         // api.userInterface().registerContextMenuItemsProvider(new OfferHostnameOverride());
     }
