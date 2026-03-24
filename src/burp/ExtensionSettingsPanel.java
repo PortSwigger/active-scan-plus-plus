@@ -7,9 +7,10 @@ import java.util.Set;
 
 class ExtensionSettingsPanel {
 
-    private static final int BUILDER_API_YEAR = 2025;
-    private static final int BUILDER_API_MAJOR = 6;
+    static final String VERIFY_GEMINI_KEY = "Verify Gemini API access (sends requests to Google)";
     private static final String LEGACY_PERSISTENCE_KEY = "google-api-key.verify-gemini-access";
+    private static final int MIN_SETTINGS_API_YEAR = 2025;
+    private static final int MIN_SETTINGS_API_MAJOR = 6;
 
     private static volatile Object settingsPanel = null;
     private static volatile boolean legacyVerifyGeminiAccess = false;
@@ -17,8 +18,6 @@ class ExtensionSettingsPanel {
     static boolean isPanelAvailable() {
         return settingsPanel != null;
     }
-
-    static final String VERIFY_GEMINI_KEY = "Verify Gemini API access (sends requests to Google)";
 
     static void register(MontoyaApi api) {
         if (supportsBuilderApi(api)) {
@@ -47,7 +46,7 @@ class ExtensionSettingsPanel {
             String[] parts = api.burpSuite().version().name().split("\\.");
             int year = Integer.parseInt(parts[0]);
             int major = Integer.parseInt(parts[1]);
-            return year > BUILDER_API_YEAR || (year == BUILDER_API_YEAR && major >= BUILDER_API_MAJOR);
+            return year > MIN_SETTINGS_API_YEAR || (year == MIN_SETTINGS_API_YEAR && major >= MIN_SETTINGS_API_MAJOR);
         } catch (Exception e) {
             Utilities.err("Could not parse Burp version, assuming legacy: " + e.getMessage());
             return false;
@@ -102,20 +101,21 @@ class ExtensionSettingsPanel {
 
     private static class ReflectiveBuilder {
         private final Class<?> cls;
-        private Object obj;
+        private Object builderInstance;
 
-        ReflectiveBuilder(Class<?> cls, Object obj) {
+        ReflectiveBuilder(Class<?> cls, Object builderInstance) {
             this.cls = cls;
-            this.obj = obj;
+            this.builderInstance = builderInstance;
         }
 
         ReflectiveBuilder with(String method, Class<?> paramType, Object arg) throws Exception {
-            obj = cls.getMethod(method, paramType).invoke(obj, arg);
+            builderInstance = cls.getMethod(method, paramType).invoke(builderInstance, arg);
             return this;
         }
 
         Object build() throws Exception {
-            return cls.getMethod("build").invoke(obj);
+            return cls.getMethod("build").invoke(builderInstance);
         }
     }
 }
+
