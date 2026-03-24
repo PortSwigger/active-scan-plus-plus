@@ -26,7 +26,7 @@ public class GoogleApiKeyScan extends ParamScan {
             "to automatically check whether this key grants Gemini API access.</i></p>";
 
     private static final String UPGRADE_TIP =
-            "<p><i>Tip: Update Burp Suite to 2025.5+ to enable the Gemini API key " +
+            "<p><i>Tip: Update Burp Suite to 2025.6+ to enable the Gemini API key " +
             "verification setting.</i></p>";
 
     private static final String INFO_DETAIL_VERIFIED =
