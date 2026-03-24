@@ -39,9 +39,8 @@ class ExtensionSettingsPanel {
 
     private static boolean supportsBuilderApi(MontoyaApi api) {
         try {
-            String[] parts = api.burpSuite().version().name().split("\\.");
-            int year = Integer.parseInt(parts[0]);
-            int major = Integer.parseInt(parts[1]);
+            int year = Integer.parseInt(api.burpSuite().version().major());
+            int major = Integer.parseInt(api.burpSuite().version().minor());
             return year > MIN_SETTINGS_API_YEAR || (year == MIN_SETTINGS_API_YEAR && major >= MIN_SETTINGS_API_MAJOR);
         } catch (Exception e) {
             Utilities.err("Could not parse Burp version, assuming legacy: " + e.getMessage());
