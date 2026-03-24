@@ -2,90 +2,75 @@ package burp;
 
 import burp.api.montoya.MontoyaApi;
 
-import javax.swing.*;
-import java.awt.*;
-import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.Set;
 
 class ExtensionSettingsPanel {
 
-    private static final String VERIFY_GEMINI_KEY = "google-api-key.verify-gemini-access";
-
-    private final JPanel panel;
-
-    ExtensionSettingsPanel(MontoyaApi api) {
-        panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        addGoogleApiKeySection(api);
-    }
-
-    private void addGoogleApiKeySection(MontoyaApi api) {
-        boolean savedValue = "true".equals(api.persistence().extensionData().getString(VERIFY_GEMINI_KEY));
-        BurpExtender.verifyGeminiAccess.set(savedValue);
-
-        JCheckBox verifyCheckbox = new JCheckBox("Verify Gemini API access (sends requests to Google)");
-        verifyCheckbox.setIconTextGap(8);
-        verifyCheckbox.setSelected(savedValue);
-        verifyCheckbox.addActionListener(e -> {
-            boolean selected = verifyCheckbox.isSelected();
-            BurpExtender.verifyGeminiAccess.set(selected);
-            api.persistence().extensionData().setString(VERIFY_GEMINI_KEY, String.valueOf(selected));
-        });
-
-        Font defaultFont = UIManager.getFont("Label.font");
-        if (defaultFont == null) {
-            defaultFont = new JLabel().getFont();
-        }
-        float defaultSize = defaultFont.getSize();
-
-        JLabel heading = new JLabel("Google API Key Scan");
-        heading.setFont(defaultFont.deriveFont(Font.BOLD, (int) (1.2f * defaultSize)));
-        heading.setAlignmentX(Component.LEFT_ALIGNMENT);
-        heading.setBorder(BorderFactory.createEmptyBorder(0, 0, 5, 0));
-
-        JTextArea description = new JTextArea(
-                "When enabled, detected API keys are checked against Google's Gemini API " +
-                "endpoints to confirm access. This upgrades findings from Information to " +
-                "Medium/High severity.");
-        description.setEditable(false);
-        description.setFocusable(false);
-        description.setLineWrap(true);
-        description.setWrapStyleWord(true);
-        description.setOpaque(false);
-        description.setFont(defaultFont);
-        description.setAlignmentX(Component.LEFT_ALIGNMENT);
-        description.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
-
-        verifyCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        panel.add(heading);
-        panel.add(description);
-        panel.add(verifyCheckbox);
-    }
+    static final String VERIFY_GEMINI_KEY = "Verify Gemini API access (sends requests to Google)";
 
     static void register(MontoyaApi api) {
         try {
-            ExtensionSettingsPanel settingsPanel = new ExtensionSettingsPanel(api);
-            Object proxy = java.lang.reflect.Proxy.newProxyInstance(
-                    api.getClass().getClassLoader(),
-                    new Class[]{Class.forName("burp.api.montoya.ui.settings.SettingsPanel")},
-                    (p, method, args) -> {
-                        if ("uiComponent".equals(method.getName())) {
-                            return settingsPanel.panel;
-                        }
-                        if ("keywords".equals(method.getName())) {
-                            return java.util.Set.of("activescan", "active", "scan", "google", "api", "key", "gemini");
-                        }
-                        return null;
-                    }
-            );
-            Method registerMethod = api.userInterface().getClass().getMethod(
-                    "registerSettingsPanel", Class.forName("burp.api.montoya.ui.settings.SettingsPanel"));
-            registerMethod.invoke(api.userInterface(), proxy);
+            ClassLoader cl = api.getClass().getClassLoader();
+            Class<?> builderClass = Class.forName("burp.api.montoya.ui.settings.SettingsPanelBuilder", true, cl);
+            Class<?> settingClass = Class.forName("burp.api.montoya.ui.settings.SettingsPanelSetting", true, cl);
+            Class<?> persistenceClass = Class.forName("burp.api.montoya.ui.settings.SettingsPanelPersistence", true, cl);
+
+            Object setting = settingClass
+                    .getMethod("booleanSetting", String.class, boolean.class)
+                    .invoke(null, VERIFY_GEMINI_KEY, false);
+
+            @SuppressWarnings("unchecked")
+            Object persistence = Enum.valueOf((Class<Enum>) persistenceClass, "USER_SETTINGS");
+
+            Object panel = new ReflectiveBuilder(builderClass, builderClass.getMethod("settingsPanel").invoke(null))
+                    .with("withTitle", String.class, "Google API Key Scan")
+                    .with("withDescription", String.class,
+                            "When enabled, detected API keys are checked against Google's Gemini API " +
+                            "endpoints to confirm access. This upgrades findings from Information to " +
+                            "Medium/High severity.")
+                    .with("withSetting", settingClass, setting)
+                    .with("withPersistence", persistenceClass, persistence)
+                    .with("withKeywords", Collection.class, Set.of("activescan", "active", "scan", "google", "api", "key", "gemini"))
+                    .build();
+
+            api.userInterface().getClass()
+                    .getMethod("registerSettingsPanel", Class.forName("burp.api.montoya.ui.settings.SettingsPanel", true, cl))
+                    .invoke(api.userInterface(), panel);
+
+            BurpExtender.settingsPanel = panel;
             BurpExtender.settingsPanelAvailable = true;
         } catch (Exception e) {
-            Utilities.err("Could not register settings panel (requires Burp 2025.5+): " + e.getMessage());
+            Utilities.err("Could not register settings panel (requires Burp 2025.6+): " + e.getMessage());
+        }
+    }
+
+    static boolean getVerifyGeminiAccess() {
+        try {
+            return (Boolean) BurpExtender.settingsPanel.getClass()
+                    .getMethod("getBoolean", String.class)
+                    .invoke(BurpExtender.settingsPanel, VERIFY_GEMINI_KEY);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static class ReflectiveBuilder {
+        private final Class<?> cls;
+        private Object obj;
+
+        ReflectiveBuilder(Class<?> cls, Object obj) {
+            this.cls = cls;
+            this.obj = obj;
+        }
+
+        ReflectiveBuilder with(String method, Class<?> paramType, Object arg) throws Exception {
+            obj = cls.getMethod(method, paramType).invoke(obj, arg);
+            return this;
+        }
+
+        Object build() throws Exception {
+            return cls.getMethod("build").invoke(obj);
         }
     }
 }

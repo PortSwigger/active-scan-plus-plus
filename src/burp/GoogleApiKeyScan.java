@@ -83,7 +83,8 @@ public class GoogleApiKeyScan extends ParamScan {
             return Collections.emptyList();
         }
 
-        boolean shouldVerify = BurpExtender.verifyGeminiAccess.get();
+        boolean shouldVerify = ExtensionSettingsPanel.getVerifyGeminiAccess();
+        Utilities.callbacks.printOutput("shouldVerify: " + shouldVerify);
         List<IScanIssue> issues = new ArrayList<>();
         IHttpService httpService = basePair.getHttpService();
         java.net.URL url = Utilities.helpers.analyzeRequest(basePair).getUrl();
