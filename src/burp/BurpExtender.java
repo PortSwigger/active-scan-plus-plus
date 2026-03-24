@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class BurpExtender implements IBurpExtender, IExtensionStateListener, BurpExtension {
     private static final String name = "ActiveScan++";
-    private static final String version = "2.0.9";
+    private static final String version = "2.0.10";
     public boolean unloaded = false;
     static ConcurrentHashMap<String, Boolean> hostsToSkip = new ConcurrentHashMap<>();
     static final AtomicBoolean verifyGeminiAccess = new AtomicBoolean(false);
