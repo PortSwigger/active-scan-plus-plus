@@ -49,6 +49,7 @@ class ExtensionSettingsPanel {
             int major = Integer.parseInt(parts[1]);
             return year > BUILDER_API_YEAR || (year == BUILDER_API_YEAR && major >= BUILDER_API_MAJOR);
         } catch (Exception e) {
+            Utilities.err("Could not parse Burp version, assuming legacy: " + e.getMessage());
             return false;
         }
     }
@@ -91,7 +92,9 @@ class ExtensionSettingsPanel {
     private static void loadLegacySetting(MontoyaApi api) {
         try {
             String value = api.persistence().extensionData().getString(LEGACY_PERSISTENCE_KEY);
-            legacyVerifyGeminiAccess = Boolean.parseBoolean(value);
+            if (value != null) {
+                legacyVerifyGeminiAccess = Boolean.parseBoolean(value);
+            }
         } catch (Exception e) {
             Utilities.err("Failed to load legacy Gemini verify setting: " + e.getMessage());
         }
