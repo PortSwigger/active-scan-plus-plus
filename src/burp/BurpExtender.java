@@ -15,8 +15,6 @@ public class BurpExtender implements IBurpExtender, IExtensionStateListener, Bur
     private static final String version = "2.0.10";
     public boolean unloaded = false;
     static ConcurrentHashMap<String, Boolean> hostsToSkip = new ConcurrentHashMap<>();
-    static volatile Object settingsPanel = null;
-    static volatile boolean settingsPanelAvailable = false;
 
     @Override
     public void initialize(MontoyaApi api) {

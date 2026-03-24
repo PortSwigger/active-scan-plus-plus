@@ -7,6 +7,12 @@ import java.util.Set;
 
 class ExtensionSettingsPanel {
 
+    private static volatile Object settingsPanel = null;
+
+    static boolean isPanelAvailable() {
+        return settingsPanel != null;
+    }
+
     static final String VERIFY_GEMINI_KEY = "Verify Gemini API access (sends requests to Google)";
 
     static void register(MontoyaApi api) {
@@ -38,8 +44,7 @@ class ExtensionSettingsPanel {
                     .getMethod("registerSettingsPanel", Class.forName("burp.api.montoya.ui.settings.SettingsPanel", true, cl))
                     .invoke(api.userInterface(), panel);
 
-            BurpExtender.settingsPanel = panel;
-            BurpExtender.settingsPanelAvailable = true;
+            settingsPanel = panel;
         } catch (Exception e) {
             Utilities.err("Could not register settings panel (requires Burp 2025.6+): " + e.getMessage());
         }
@@ -47,9 +52,9 @@ class ExtensionSettingsPanel {
 
     static boolean getVerifyGeminiAccess() {
         try {
-            return (Boolean) BurpExtender.settingsPanel.getClass()
+            return (Boolean) settingsPanel.getClass()
                     .getMethod("getBoolean", String.class)
-                    .invoke(BurpExtender.settingsPanel, VERIFY_GEMINI_KEY);
+                    .invoke(settingsPanel, VERIFY_GEMINI_KEY);
         } catch (Exception e) {
             return false;
         }

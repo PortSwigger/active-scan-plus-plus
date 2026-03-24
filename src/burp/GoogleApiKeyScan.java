@@ -121,7 +121,7 @@ public class GoogleApiKeyScan extends ParamScan {
             String infoDetail;
             if (shouldVerify) {
                 infoDetail = INFO_DETAIL_VERIFIED;
-            } else if (BurpExtender.settingsPanelAvailable) {
+            } else if (ExtensionSettingsPanel.isPanelAvailable()) {
                 infoDetail = INFO_DETAIL_BASE + VERIFY_TIP;
             } else {
                 infoDetail = INFO_DETAIL_BASE + UPGRADE_TIP;
