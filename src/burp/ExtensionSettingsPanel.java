@@ -8,12 +8,10 @@ import java.util.Set;
 class ExtensionSettingsPanel {
 
     static final String VERIFY_GEMINI_KEY = "Verify Gemini API access (sends requests to Google)";
-    private static final String LEGACY_PERSISTENCE_KEY = "google-api-key.verify-gemini-access";
     private static final int MIN_SETTINGS_API_YEAR = 2025;
     private static final int MIN_SETTINGS_API_MAJOR = 6;
 
     private static volatile Object settingsPanel = null;
-    private static volatile boolean legacyVerifyGeminiAccess = false;
 
     static boolean isPanelAvailable() {
         return settingsPanel != null;
@@ -22,14 +20,12 @@ class ExtensionSettingsPanel {
     static void register(MontoyaApi api) {
         if (supportsBuilderApi(api)) {
             registerBuilderPanel(api);
-        } else {
-            loadLegacySetting(api);
         }
     }
 
     static boolean getVerifyGeminiAccess() {
         if (settingsPanel == null) {
-            return legacyVerifyGeminiAccess;
+            return false;
         }
         try {
             return (Boolean) settingsPanel.getClass()
@@ -85,17 +81,6 @@ class ExtensionSettingsPanel {
             settingsPanel = panel;
         } catch (Exception e) {
             Utilities.err("Could not register settings panel (requires Burp 2025.6+): " + e.getMessage());
-        }
-    }
-
-    private static void loadLegacySetting(MontoyaApi api) {
-        try {
-            String value = api.persistence().extensionData().getString(LEGACY_PERSISTENCE_KEY);
-            if (value != null) {
-                legacyVerifyGeminiAccess = Boolean.parseBoolean(value);
-            }
-        } catch (Exception e) {
-            Utilities.err("Failed to load legacy Gemini verify setting: " + e.getMessage());
         }
     }
 
