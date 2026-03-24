@@ -51,11 +51,15 @@ class ExtensionSettingsPanel {
     }
 
     static boolean getVerifyGeminiAccess() {
+        if (settingsPanel == null) {
+            return false;
+        }
         try {
             return (Boolean) settingsPanel.getClass()
                     .getMethod("getBoolean", String.class)
                     .invoke(settingsPanel, VERIFY_GEMINI_KEY);
         } catch (Exception e) {
+            Utilities.err("Failed to read Gemini verify setting: " + e.getMessage());
             return false;
         }
     }
