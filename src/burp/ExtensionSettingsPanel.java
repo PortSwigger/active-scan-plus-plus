@@ -7,7 +7,12 @@ import java.util.Set;
 
 class ExtensionSettingsPanel {
 
+    private static final int BUILDER_API_YEAR = 2025;
+    private static final int BUILDER_API_MAJOR = 6;
+    private static final String LEGACY_PERSISTENCE_KEY = "google-api-key.verify-gemini-access";
+
     private static volatile Object settingsPanel = null;
+    private static volatile boolean legacyVerifyGeminiAccess = false;
 
     static boolean isPanelAvailable() {
         return settingsPanel != null;
@@ -16,6 +21,39 @@ class ExtensionSettingsPanel {
     static final String VERIFY_GEMINI_KEY = "Verify Gemini API access (sends requests to Google)";
 
     static void register(MontoyaApi api) {
+        if (supportsBuilderApi(api)) {
+            registerBuilderPanel(api);
+        } else {
+            loadLegacySetting(api);
+        }
+    }
+
+    static boolean getVerifyGeminiAccess() {
+        if (settingsPanel == null) {
+            return legacyVerifyGeminiAccess;
+        }
+        try {
+            return (Boolean) settingsPanel.getClass()
+                    .getMethod("getBoolean", String.class)
+                    .invoke(settingsPanel, VERIFY_GEMINI_KEY);
+        } catch (Exception e) {
+            Utilities.err("Failed to read Gemini verify setting: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private static boolean supportsBuilderApi(MontoyaApi api) {
+        try {
+            String[] parts = api.burpSuite().version().name().split("\\.");
+            int year = Integer.parseInt(parts[0]);
+            int major = Integer.parseInt(parts[1]);
+            return year > BUILDER_API_YEAR || (year == BUILDER_API_YEAR && major >= BUILDER_API_MAJOR);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static void registerBuilderPanel(MontoyaApi api) {
         try {
             ClassLoader cl = api.getClass().getClassLoader();
             Class<?> builderClass = Class.forName("burp.api.montoya.ui.settings.SettingsPanelBuilder", true, cl);
@@ -50,17 +88,12 @@ class ExtensionSettingsPanel {
         }
     }
 
-    static boolean getVerifyGeminiAccess() {
-        if (settingsPanel == null) {
-            return false;
-        }
+    private static void loadLegacySetting(MontoyaApi api) {
         try {
-            return (Boolean) settingsPanel.getClass()
-                    .getMethod("getBoolean", String.class)
-                    .invoke(settingsPanel, VERIFY_GEMINI_KEY);
+            String value = api.persistence().extensionData().getString(LEGACY_PERSISTENCE_KEY);
+            legacyVerifyGeminiAccess = Boolean.parseBoolean(value);
         } catch (Exception e) {
-            Utilities.err("Failed to read Gemini verify setting: " + e.getMessage());
-            return false;
+            Utilities.err("Failed to load legacy Gemini verify setting: " + e.getMessage());
         }
     }
 
