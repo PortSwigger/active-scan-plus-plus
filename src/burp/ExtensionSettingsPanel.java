@@ -28,8 +28,7 @@ class ExtensionSettingsPanel {
             panel = settingsPanel()
                     .withTitle("Google API Key Scan")
                     .withDescription(
-                            "When enabled, detected API keys a" +
-                                    "re checked against Google's Gemini API " +
+                            "When enabled, detected API keys are checked against Google's Gemini API " +
                             "endpoints to confirm access. This upgrades findings from Information to " +
                             "Medium/High severity.")
                     .withSetting(booleanSetting(VERIFY_GEMINI_KEY, false))
